@@ -7,7 +7,7 @@ BASE_API = "http://127.0.0.1:8000/api"
 
 def test_climate_workflow():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch()
         page = browser.new_page()
         page.goto("file://" + __import__("os").path.abspath("index.html"))
 
