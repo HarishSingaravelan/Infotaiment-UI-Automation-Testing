@@ -1,52 +1,33 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.11'
-            args '-u root:root'   // allow installs
-        }
-    }
+    agent any
 
     stages {
-
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Setup Python') {
             steps {
-                sh 'pip install -r requirements.txt'
-                sh 'playwright install --with-deps'
+                sh 'python3 --version'
+                sh 'pip3 install -r requirements.txt'
             }
         }
 
-        stage('Start Backend Server') {
+        stage('Run Tests') {
             steps {
-                sh 'nohup uvicorn main:app --host 0.0.0.0 --port 8000 &'
-                sleep 5
-            }
-        }
-
-        stage('Run UI Automation Tests') {
-            steps {
-                sh 'pytest tests/ --html=report.html --self-contained-html'
-            }
-        }
-
-        stage('Archive Reports') {
-            steps {
-                archiveArtifacts artifacts: 'report.html', fingerprint: true
+                sh 'pytest --maxfail=1 --disable-warnings -v'
             }
         }
     }
 
     post {
+        success {
+            echo '✅ All infotainment system tests passed!'
+        }
         failure {
             echo '❌ Build failed — infotainment validation errors detected!'
-        }
-        success {
-            echo '✅ Build passed — UI validation successful!'
         }
     }
 }
