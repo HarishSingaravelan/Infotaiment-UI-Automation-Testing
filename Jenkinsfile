@@ -18,6 +18,8 @@ pipeline {
                 sh 'python --version'
                 sh 'pip install --upgrade pip'
                 sh 'pip install -r requirements.txt'
+
+                sh 'playwright install --with-deps'
             }
         }
 
