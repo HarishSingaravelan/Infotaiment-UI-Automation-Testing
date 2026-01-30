@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.11-slim'
+            args '-u root:root'  // run as root inside container
+        }
+    }
 
     stages {
 
@@ -11,16 +16,23 @@ pipeline {
 
         stage('Setup Python Environment') {
             steps {
+                // Create virtual environment and install dependencies
                 sh 'python -m venv venv'
+                sh '. venv/bin/activate && pip install --upgrade pip'
                 sh '. venv/bin/activate && pip install -r requirements.txt'
-                sh '. venv/bin/activate && playwright install'
+                sh '. venv/bin/activate && playwright install --with-deps'
             }
         }
 
         stage('Start Backend Server') {
             steps {
-                sh '. venv/bin/activate && nohup uvicorn main:app --host 127.0.0.1 --port 8000 &'
-                sleep 5
+                // Start uvicorn in background
+                sh '''
+                    . venv/bin/activate
+                    nohup uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+                '''
+                // Wait for server to be ready
+                sh 'sleep 5'
             }
         }
 
@@ -42,10 +54,10 @@ pipeline {
             echo 'Pipeline finished.'
         }
         failure {
-            echo 'Build failed — infotainment validation errors detected!'
+            echo '❌ Build failed — infotainment validation errors detected!'
         }
         success {
-            echo 'Build passed — UI validation successful!'
+            echo '✅ Build passed — UI validation successful!'
         }
     }
 }
