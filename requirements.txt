@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pydantic
+playwright
+pytest
+requests
+pytest-html
