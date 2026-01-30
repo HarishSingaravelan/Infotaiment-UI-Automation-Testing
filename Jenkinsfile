@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.11-slim'
+            args '-u root:root'
+        }
+    }
 
     stages {
         stage('Checkout') {
@@ -8,16 +13,17 @@ pipeline {
             }
         }
 
-        stage('Setup Python') {
+        stage('Install Dependencies') {
             steps {
-                sh 'python3 --version'
-                sh 'pip3 install -r requirements.txt'
+                sh 'python --version'
+                sh 'pip install --upgrade pip'
+                sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Run Tests') {
+        stage('Run API Tests') {
             steps {
-                sh 'pytest --maxfail=1 --disable-warnings -v'
+                sh 'pytest -v --maxfail=1 --disable-warnings'
             }
         }
     }
