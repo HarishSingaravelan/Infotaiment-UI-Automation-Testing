@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mock Vehicle Infotainment</title>
+</head>
+<body>
+    <h1>🚗 Infotainment System</h1>
+
+    <h2>🌡️ Climate Control</h2>
+    Driver Temp: <input id="driverTemp" type="number" value="22"><br>
+    Passenger Temp: <input id="passengerTemp" type="number" value="22"><br>
+    Fan Speed: <input id="fanSpeed" type="number" value="3"><br>
+    Mode:
+    <select id="climateMode">
+        <option>AUTO</option>
+        <option>MANUAL</option>
+        <option>ECO</option>
+    </select>
+    <button onclick="updateClimate()">Apply Climate</button>
+
+    <h2>🎵 Media</h2>
+    <button onclick="togglePlay()">Play / Pause</button>
+    Volume: <input id="volume" type="number" value="10">
+    <button onclick="setVolume()">Set Volume</button>
+
+    <h2>🗺️ Navigation</h2>
+    Destination: <input id="destination" type="text">
+    <button onclick="setDestination()">Start Navigation</button>
+
+    <script>
+        const BASE = "http://127.0.0.1:8000/api";
+
+        async function updateClimate() {
+            const data = {
+                driver_temp: parseInt(driverTemp.value),
+                passenger_temp: parseInt(passengerTemp.value),
+                fan_speed: parseInt(fanSpeed.value),
+                mode: climateMode.value
+            };
+
+            await fetch(`${BASE}/climate/update`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+        }
+
+        async function togglePlay() {
+            await fetch(`${BASE}/media/play_pause`, { method: "POST" });
+        }
+
+        async function setVolume() {
+            await fetch(`${BASE}/media/volume/${volume.value}`, { method: "POST" });
+        }
+
+        async function setDestination() {
+            await fetch(`${BASE}/navigation/set_destination?destination=${destination.value}`, {
+                method: "POST"
+            });
+        }
+    </script>
+</body>
+</html>
