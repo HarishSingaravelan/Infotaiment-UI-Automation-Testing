@@ -2,12 +2,8 @@ pipeline {
     agent {
         docker {
             image 'python:3.11-slim'
-            args '-u root:root'
+            args '-u root:root'  // run as root inside container
         }
-    }
-
-    environment {
-        VENV = ".venv"
     }
 
     stages {
@@ -20,35 +16,35 @@ pipeline {
 
         stage('Setup Python Environment') {
             steps {
-                sh 'python -m venv $VENV'
-                sh ". $VENV/bin/activate && pip install --upgrade pip"
-                sh ". $VENV/bin/activate && pip install -r requirements.txt"
-                sh ". $VENV/bin/activate && playwright install --with-deps"
+                // Create virtual environment and install dependencies
+                sh 'python -m venv venv'
+                sh '. venv/bin/activate && pip install --upgrade pip'
+                sh '. venv/bin/activate && pip install -r requirements.txt'
+                sh '. venv/bin/activate && playwright install --with-deps'
             }
         }
 
         stage('Start Backend Server') {
             steps {
-                sh ". $VENV/bin/activate && nohup uvicorn main:app --host 127.0.0.1 --port 8000 &"
-                sh 'sleep 5' // wait for server to be ready
+                // Start uvicorn in background
+                sh '''
+                    . venv/bin/activate
+                    nohup uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+                '''
+                // Wait for server to be ready
+                sh 'sleep 5'
             }
         }
 
-        stage('Smoke Tests') {
+        stage('Run UI Automation Tests') {
             steps {
-                sh ". $VENV/bin/activate && pytest tests/smoke --maxfail=1 --disable-warnings --html=smoke_report.html --self-contained-html"
-            }
-        }
-
-        stage('Regression Tests') {
-            steps {
-                sh ". $VENV/bin/activate && pytest tests/regression --disable-warnings --html=regression_report.html --self-contained-html"
+                sh '. venv/bin/activate && pytest tests/ --html=report.html --self-contained-html'
             }
         }
 
         stage('Archive Reports') {
             steps {
-                archiveArtifacts artifacts: '*.html', fingerprint: true
+                archiveArtifacts artifacts: 'report.html', fingerprint: true
             }
         }
     }
@@ -61,7 +57,7 @@ pipeline {
             echo '❌ Build failed — infotainment validation errors detected!'
         }
         success {
-            echo '✅ Build passed — UI & API validation successful!'
+            echo '✅ Build passed — UI validation successful!'
         }
     }
 }
