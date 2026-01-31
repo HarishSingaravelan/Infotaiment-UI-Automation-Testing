@@ -1,52 +1,47 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.11'
-            args '-u root:root'   // allow installs
-        }
-    }
+    agent any
 
     stages {
 
         stage('Checkout Code') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
-        stage('Install Dependencies') {
+        stage('Setup Environment') {
             steps {
-                sh 'pip install -r requirements.txt'
-                sh 'playwright install --with-deps'
+                sh 'python -m venv venv'
+                sh '. venv/bin/activate && pip install -r requirements.txt'
             }
         }
 
         stage('Start Backend Server') {
             steps {
-                sh 'nohup uvicorn main:app --host 0.0.0.0 --port 8000 &'
+                sh '. venv/bin/activate && nohup uvicorn main:app --host 127.0.0.1 --port 8000 &'
                 sleep 5
             }
         }
 
-        stage('Run UI Automation Tests') {
+        stage('Run Smoke Tests') {
             steps {
-                sh 'pytest tests/ --html=report.html --self-contained-html'
+                sh '. venv/bin/activate && pytest tests/smoke -v --maxfail=1 --html=smoke_report.html'
+            }
+        }
+
+        stage('Run Regression Tests') {
+            steps {
+                sh '. venv/bin/activate && pytest tests/regression -v --html=regression_report.html'
             }
         }
 
         stage('Archive Reports') {
             steps {
-                archiveArtifacts artifacts: 'report.html', fingerprint: true
+                archiveArtifacts artifacts: '*.html', fingerprint: true
             }
         }
     }
 
     post {
-        failure {
-            echo '❌ Build failed — infotainment validation errors detected!'
-        }
-        success {
-            echo '✅ Build passed — UI validation successful!'
-        }
+        success { echo '✅ All infotainment tests passed!' }
+        failure { echo '❌ Build failed — vehicle system validation errors detected!' }
     }
 }

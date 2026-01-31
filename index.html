@@ -1,63 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Mock Vehicle Infotainment</title>
+<meta charset="UTF-8">
+<title>🚗 Mock Infotainment System</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+        color: #333;
+    }
+    h1 { color: #2c3e50; }
+    section {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+    }
+    input[type=number], input[type=text], select {
+        padding: 5px;
+        margin: 5px 0 10px 0;
+        width: 80px;
+    }
+    button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        background: #2980b9;
+        color: white;
+        cursor: pointer;
+        margin-right: 5px;
+    }
+    button:hover {
+        background: #3498db;
+    }
+    label {
+        margin-right: 10px;
+    }
+</style>
 </head>
 <body>
-    <h1>🚗 Infotainment System</h1>
+<h1>🚗 Infotainment System</h1>
 
+<section id="climateSection">
     <h2>🌡️ Climate Control</h2>
-    Driver Temp: <input id="driverTemp" type="number" value="22"><br>
-    Passenger Temp: <input id="passengerTemp" type="number" value="22"><br>
-    Fan Speed: <input id="fanSpeed" type="number" value="3"><br>
-    Mode:
+    <label for="driverTemp">Driver Temp:</label>
+    <input id="driverTemp" type="number" value="22" min="16" max="30"><br>
+    
+    <label for="passengerTemp">Passenger Temp:</label>
+    <input id="passengerTemp" type="number" value="22" min="16" max="30"><br>
+    
+    <label for="fanSpeed">Fan Speed:</label>
+    <input id="fanSpeed" type="number" value="3" min="0" max="10"><br>
+    
+    <label for="climateMode">Mode:</label>
     <select id="climateMode">
-        <option>AUTO</option>
-        <option>MANUAL</option>
-        <option>ECO</option>
+        <option value="AUTO">AUTO</option>
+        <option value="MANUAL">MANUAL</option>
+        <option value="ECO">ECO</option>
     </select>
-    <button onclick="updateClimate()">Apply Climate</button>
+    <button onclick="updateClimate()">Apply</button>
+    <p id="climateStatus"></p>
+</section>
 
+<section id="mediaSection">
     <h2>🎵 Media</h2>
     <button onclick="togglePlay()">Play / Pause</button>
-    Volume: <input id="volume" type="number" value="10">
-    <button onclick="setVolume()">Set Volume</button>
+    <label for="volume">Volume:</label>
+    <input id="volume" type="number" value="10" min="0" max="100">
+    <button onclick="setVolume()">Set</button>
+    <p id="mediaStatus"></p>
+</section>
 
+<section id="navigationSection">
     <h2>🗺️ Navigation</h2>
-    Destination: <input id="destination" type="text">
-    <button onclick="setDestination()">Start Navigation</button>
+    <label for="destination">Destination:</label>
+    <input id="destination" type="text">
+    <button onclick="setDestination()">Start</button>
+    <button onclick="stopNavigation()">Stop</button>
+    <p id="navigationStatus"></p>
+</section>
 
-    <script>
-        const BASE = "http://127.0.0.1:8000/api";
+<script>
+const BASE = "http://127.0.0.1:8000/api";
 
-        async function updateClimate() {
-            const data = {
-                driver_temp: parseInt(driverTemp.value),
-                passenger_temp: parseInt(passengerTemp.value),
-                fan_speed: parseInt(fanSpeed.value),
-                mode: climateMode.value
-            };
+async function updateClimate() {
+    const data = {
+        driver_temp: parseInt(driverTemp.value),
+        passenger_temp: parseInt(passengerTemp.value),
+        fan_speed: parseInt(fanSpeed.value),
+        mode: climateMode.value
+    };
+    const res = await fetch(`${BASE}/climate/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    document.getElementById('climateStatus').innerText = `Driver: ${json.driver_temp}°C, Passenger: ${json.passenger_temp}°C, Fan: ${json.fan_speed}, Mode: ${json.mode}`;
+}
 
-            await fetch(`${BASE}/climate/update`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-        }
+async function togglePlay() {
+    const res = await fetch(`${BASE}/media/play_pause`, { method: "POST" });
+    const json = await res.json();
+    document.getElementById('mediaStatus').innerText = `Playing: ${json.is_playing}, Volume: ${json.volume}`;
+}
 
-        async function togglePlay() {
-            await fetch(`${BASE}/media/play_pause`, { method: "POST" });
-        }
+async function setVolume() {
+    const res = await fetch(`${BASE}/media/volume/${volume.value}`, { method: "POST" });
+    const json = await res.json();
+    document.getElementById('mediaStatus').innerText = `Playing: ${json.is_playing}, Volume: ${json.volume}`;
+}
 
-        async function setVolume() {
-            await fetch(`${BASE}/media/volume/${volume.value}`, { method: "POST" });
-        }
+async function setDestination() {
+    const res = await fetch(`${BASE}/navigation/set_destination?destination=${destination.value}`, { method: "POST" });
+    const json = await res.json();
+    document.getElementById('navigationStatus').innerText = `Destination: ${json.destination}, ETA: ${json.eta_minutes} min, Navigating: ${json.is_navigating}`;
+}
 
-        async function setDestination() {
-            await fetch(`${BASE}/navigation/set_destination?destination=${destination.value}`, {
-                method: "POST"
-            });
-        }
-    </script>
+async function stopNavigation() {
+    const res = await fetch(`${BASE}/navigation/stop`, { method: "POST" });
+    const json = await res.json();
+    document.getElementById('navigationStatus').innerText = `Destination: ${json.destination}, Navigating: ${json.is_navigating}`;
+}
+</script>
 </body>
 </html>
