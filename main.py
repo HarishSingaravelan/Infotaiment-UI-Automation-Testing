@@ -2,8 +2,27 @@
 from fastapi import FastAPI
 from models import ClimateState, MediaState, NavigationState, SettingsState
 import random
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="Mock Tesla Infotainment System")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+def serve_ui():
+    return FileResponse("index.html")
+
 
 # In-memory "vehicle state"
 climate_state = ClimateState()
